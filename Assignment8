@@ -1,0 +1,181 @@
+
+--1.
+
+DECLARE
+	bossid employees.manager_id%TYPE;
+    CURSOR C_Employee  IS
+   	select employee_id,  first_name || ' ' || last_name as fullname, 
+	department_id  from employees where manager_id=bossid;	
+    employee_id   	employees.employee_id%TYPE;
+    fullname   	employees.first_name%TYPE;
+	deptname    employees.department_id%TYPE;
+    v_c_employee 	C_Employee%ROWTYPE;
+BEGIN
+    DBMS_OUTPUT.put_line('Using basic LOOP');
+    DBMS_OUTPUT.put_line('Employee ID   Full Name       Department No');
+    DBMS_OUTPUT.put_line('--------------------------------------------');
+    bossid :=103;
+    OPEN C_Employee;
+    LOOP
+    FETCH C_Employee INTO employee_id, fullname,deptname;
+    EXIT WHEN C_Employee%NOTFOUND;
+    DBMS_OUTPUT.put_line 
+    (RPAD(employee_id, 14, ' ')||RPAD(fullname, 14, ' ')||LPAD(deptname, 14, ' '));
+    END LOOP;
+    DBMS_OUTPUT.put_line('');
+    CLOSE C_Employee;
+    DBMS_OUTPUT.put_line('Using Cursor for LOOP');
+    DBMS_OUTPUT.put_line('Employee ID   Full Name       Department No');
+    DBMS_OUTPUT.put_line('--------------------------------------------');
+    bossid := 148;
+    For indx in C_Employee loop
+    DBMS_OUTPUT.put_line ( (RPAD(indx.employee_id,14, ' ')||RPAD(indx.fullname, 14,' ')
+	 ||LPAD(indx.department_id, 14,' ')));
+    End loop;
+END;
+
+
+/*
+OUTPUT
+Using basic LOOP
+Employee ID   Full Name       Department No
+--------------------------------------------
+104           Bruce Ernst               60
+105           David Austin              60
+106           Valli Pataball            60
+107           Diana Lorentz             60
+
+Using Cursor for LOOP
+Employee ID   Full Name       Department No
+--------------------------------------------
+168           Lisa Ozer                 80
+169           Harrison Bloom            80
+170           Tayler Fox                80
+171           William Smith             80
+172           Elizabeth Bate            80
+173           Sundita Kumar             80
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q2
+
+DECLARE
+  bonus NUMBER;
+  total_bonus NUMBER := 0;
+  years_worked NUMBER;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('EmployeeID  YearsWorked       Salary         Bonus');
+  DBMS_OUTPUT.PUT_LINE('-------------------------------------------------------');
+  FOR Dept_Bonus IN (SELECT employee_id, hire_date, salary FROM 
+  employees WHERE department_id = 60)
+ 
+  LOOP
+    years_worked := FLOOR(MONTHS_BETWEEN(SYSDATE, Dept_Bonus.hire_date) / 12);
+    IF years_worked >= 26 THEN
+      IF Dept_Bonus.salary >= 8000 THEN
+        bonus := 2500;
+      ELSIF Dept_Bonus.salary >= 3000 THEN
+        bonus := 2000;
+      ELSE
+        bonus := 1600;
+      END IF;
+    ELSIF years_worked >= 24 AND years_worked < 26 THEN
+      IF Dept_Bonus.salary >= 8000 THEN
+        bonus := 2100;
+      ELSIF Dept_Bonus.salary >= 3000 THEN
+        bonus := 1500;
+      ELSE
+        bonus := 1200;
+      END IF;
+    ELSE
+      bonus := 1100;
+    END IF;
+    total_bonus := total_bonus + bonus;
+    DBMS_OUTPUT.PUT_LINE(RPAD(Dept_Bonus.employee_id, 14, ' ') 
+    ||RPAD(years_worked, 14, ' ') ||RPAD(TO_CHAR (Dept_Bonus.salary, '$99,999'), 14, ' ') 
+    ||RPAD(TO_CHAR (bonus, '$99,999'), 14, ' '));
+  END LOOP;
+   DBMS_OUTPUT.PUT_LINE('');
+  DBMS_OUTPUT.PUT_LINE('Total Bonus calculated for Department 60 is ' || TO_CHAR (total_bonus, '$99,999'));
+END;
+
+/*
+
+OUTPUT
+
+EmployeeID  YearsWorked       Salary         Bonus
+-------------------------------------------------------
+103           33              $9,000        $2,500      
+104           31              $6,000        $2,000      
+105           25              $4,800        $1,500      
+106           25              $4,800        $1,500      
+107           23              $4,200        $1,100      
+
+Total Bonus calculated for Department 60 is   $8,600
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q3
+DECLARE
+	TYPE Email_Phone IS TABLE OF VARCHAR2(25) INDEX BY VARCHAR2(25);
+   	list30 	 Email_Phone;
+	i 	 varchar2(25); 
+        counter  integer := 1;
+   	
+        CURSOR  c IS
+      	SELECT email, phone_number 
+    FROM employees 
+    WHERE department_id = 30;
+        
+BEGIN
+
+    DBMS_OUTPUT.PUT_LINE (' Email         Phone  ');
+    DBMS_OUTPUT.PUT_LINE ('------------ ------------');
+    
+    FOR indx IN c LOOP
+       list30 (indx.email) := indx.phone_number;
+      	 
+       DBMS_OUTPUT.PUT_LINE (RPAD (indx.email, 12) ||'  ' ||
+ 			To_char (list30 (indx.email)));    	
+       counter := counter + 1 ;
+       
+    END LOOP;
+  
+END;
+/
+
+/*
+
+OUTPUT
+
+Email         Phone  
+------------ ------------
+DRAPHEAL      515.127.4561
+AKHOO         515.127.4562
+SBAIDA        515.127.4563
+STOBIAS       515.127.4564
+GHIMURO       515.127.4565
+KCOLMENA      515.127.4566
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q4
+/*
+1.After running the code as it is I was able to see the data getting inserted into the table. There was a error code 6502 which states there was a value error in the code. In further analysis I was able to see that there was a conversion error that caused the exception handling mechanism to trigger. Which means there was a attempt to assign the value NULL to a variable declared NOT NULL thats what the error message says. When I checked it was declaring manager_id to NVL.
+
+2. NVL (dept_mgr_id, 'Not assigned')  in DBMS output line was causing error.
+
+3. DBMS_OUTPUT.PUT_LINE ( 'A new department is created. ' || CHR (10) 
+   || 'Its ID is ' || dept_id || ', its name is ' || dept_name ||', ' ||
+   'its manager id is '||  dept_mgr_id ||', 
+   its location ID is ' || dept_loc_id ||'.');
+*/
