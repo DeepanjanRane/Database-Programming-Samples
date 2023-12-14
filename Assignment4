@@ -1,0 +1,279 @@
+/*
+CSC 452 DATABASE PROGRAMMING
+
+Assignment 5
+Deepanjan Rane
+Student ID: 2072865
+*/
+
+--Q1
+
+DECLARE
+  TYPE Constr IS RECORD (
+    Tb_name varchar2(30),
+    constr_name varchar2(30),
+    Constr_type char(1)
+  );
+  
+  cur_user_constraints SYS_REFCURSOR;
+  rec_constraint Constr;
+BEGIN
+  OPEN cur_user_constraints FOR
+    SELECT table_name, constraint_name, constraint_type
+    FROM user_constraints
+    WHERE upper(table_name) = 'EMPLOYEES'
+    ORDER BY 3;
+    
+  LOOP
+    FETCH cur_user_constraints INTO rec_constraint;
+    EXIT WHEN cur_user_constraints%NOTFOUND;
+    
+    DBMS_OUTPUT.PUT_LINE('Table Name: ' || rec_constraint.Tb_name);
+    DBMS_OUTPUT.PUT_LINE('Constraint Name: ' || rec_constraint.constr_name);
+    DBMS_OUTPUT.PUT_LINE('Constraint Type: ' || rec_constraint.Constr_type);
+  END LOOP;
+  
+  CLOSE cur_user_constraints;
+END;
+
+
+/*
+OUTPUT
+
+Table Name: EMPLOYEES
+Constraint Name: EMP_EMAIL_NN
+Constraint Type: C
+Table Name: EMPLOYEES
+Constraint Name: EMP_SALARY_MIN
+Constraint Type: C
+Table Name: EMPLOYEES
+Constraint Name: EMP_JOB_NN
+Constraint Type: C
+Table Name: EMPLOYEES
+Constraint Name: EMP_HIRE_DATE_NN
+Constraint Type: C
+Table Name: EMPLOYEES
+Constraint Name: EMP_LAST_NAME_NN
+Constraint Type: C
+Table Name: EMPLOYEES
+Constraint Name: EMP_EMP_ID_PK
+Constraint Type: P
+Table Name: EMPLOYEES
+Constraint Name: EMP_MANAGER_FK
+Constraint Type: R
+Table Name: EMPLOYEES
+Constraint Name: EMP_JOB_FK
+Constraint Type: R
+Table Name: EMPLOYEES
+Constraint Name: EMP_DEPT_FK
+Constraint Type: R
+Table Name: EMPLOYEES
+Constraint Name: EMP_EMAIL_UK
+Constraint Type: U
+
+
+PL/SQL procedure successfully completed.
+*/
+
+
+--Q2
+
+DECLARE
+TYPE DEPT_INFO  is RECORD
+(
+dept_id   departments.department_id%TYPE, 
+dept_name  departments.department_name%TYPE,
+head_fullname      varchar2 (46)
+);
+Dept_no number(4):= 30;
+v2  DEPT_INFO;
+CURSOR c is SELECT   e.department_id, department_name, 
+         (first_name ||' '|| last_name) as dept_head_name
+   FROM    employees  e, departments d
+   WHERE   e.employee_id = d.manager_id and e.department_id = Dept_no;
+
+BEGIN
+OPEN c;
+loop
+FETCH c into v2;
+exit when c%notfound;
+    dbms_output.put_line('Department ID   Department Name     Head Full Name');
+    dbms_output.put_line('-------------   ---------------     --------------');
+    dbms_output.put_line(rpad(v2.dept_id,18,' ') ||rpad(v2.dept_name,18)|| rpad(v2.head_fullname,18) );
+ end loop;
+close c;
+end;
+
+/*
+OUTPUT
+
+Department ID   Department Name     Head Full Name
+-------------   ---------------     --------------
+30                Purchasing        Den Raphaely      
+
+
+PL/SQL procedure successfully completed.
+*/
+
+
+--Q3
+
+DECLARE
+  TYPE Dept_Info IS RECORD (
+    dept_id Departments.department_id%TYPE,
+    dept_name Departments.department_name%TYPE,
+    manager_name varchar(50)
+    --Employees.first_name%TYPE || ' ' || Employees.last_name%TYPE
+  );
+
+  TYPE Dept_Info_NT IS TABLE OF Dept_Info;
+  LIST Dept_Info_NT := Dept_Info_NT();
+  CURSOR c IS SELECT d.department_id,  (e.first_name||' '|| e.last_name) as M_Name, d.department_name
+              FROM Departments d
+              JOIN Employees e ON d.manager_id = e.employee_id
+              WHERE d.manager_id IS NOT NULL ORDER BY 1;
+   
+i INTEGER :=1;
+BEGIN
+  DBMS_OUTPUT.PUT_LINE(' Department ID '||'   Manager Name  ' || '   Department Name ');
+DBMS_OUTPUT.PUT_LINE('------------- '||'  --------------- ' || '  ------------ ');
+list.extend(50);
+for indx in c loop
+list(i).dept_id := indx.department_id;
+list(i).manager_name := indx.M_Name;
+list(i).dept_name:= indx.department_name;
+DBMS_OUTPUT.PUT_LINE (RPAD(LIST(i).dept_id,16, ' ') 
+        || RPAD (LIST(i).manager_name,18, ' ') || RPAD(LIST(i).dept_name ,14, ' '));
+i := i + 1;        
+End loop;
+              
+END;
+
+/*
+OUTPUT
+
+Department ID    Manager Name     Department Name 
+-------------   ---------------   ------------ 
+10              Jennifer Whalen   Administration
+20              Michael Hartstein Marketing     
+30              Den Raphaely      Purchasing    
+40              Susan Mavris      Human Resource
+50              Adam Fripp        Shipping      
+60              Alexander Hunold  IT            
+70              Hermann Baer      Public Relatio
+80              John Russell      Sales         
+90              Steven King       Executive     
+100             Nancy Greenberg   Finance       
+110             Shelley Higgins   Accounting    
+280             Steven King       TEST          
+
+*/
+
+--Q4
+
+DECLARE 
+Deptno number; 
+Emp_num number; 
+
+PROCEDURE Dept_Emp_num (Deptno IN NUMBER, Emp_num OUT NUMBER)
+IS
+BEGIN
+SELECT count (*) into Emp_num
+FROM employees 
+WHERE department_id= 30;
+
+End Dept_Emp_num;
+BEGIN
+Dept_Emp_num(Deptno , Emp_num); 
+dbms_output.put_line(' Number of employees : ' || Emp_num); 
+END;
+
+/*
+OUTPUT
+
+Number of employees : 6
+
+*/
+
+--Q5
+
+CREATE OR REPLACE PROCEDURE Dept_Emp_num (Deptno IN NUMBER, Emp_num OUT NUMBER)
+IS
+BEGIN
+
+SELECT count (*) into Emp_num
+FROM employees 
+WHERE department_id = Deptno;
+
+END;
+
+DECLARE 
+Deptno number; 
+Emp_num number; 
+BEGIN 
+Deptno:= 30; 
+Dept_Emp_num(Deptno , Emp_num); 
+dbms_output.put_line(' Number of employees : ' || Emp_num); 
+END;
+
+/*
+OUTPUT
+
+Number of employees : 6
+*/
+
+--Q6
+
+CREATE OR REPLACE PROCEDURE Dept_Emp_num(Deptno IN departments.department_id%TYPE, Emp_num OUT NUMBER) IS
+BEGIN
+  SELECT COUNT(*) INTO Emp_num
+  FROM employees
+  WHERE department_id = Deptno;
+END;
+/
+
+DECLARE
+   dept_id employees.department_id%TYPE;
+   emp_count NUMBER;
+   CURSOR c_dept IS
+      SELECT department_id, COUNT(employee_id)
+      FROM employees where manager_id is NOT NULL and department_id != 0
+      GROUP BY department_id;
+BEGIN
+   OPEN c_dept;
+   DBMS_OUTPUT.PUT_LINE(' Department ID '||'   No. of Employees  ');
+   DBMS_OUTPUT.PUT_LINE('------------- '||'  --------------- ' );
+   LOOP
+   
+      FETCH c_dept INTO dept_id, emp_count;
+      EXIT WHEN c_dept%NOTFOUND;
+      
+      DBMS_OUTPUT.PUT_LINE (RPAD(dept_id,16, ' ') 
+        || RPAD (emp_count,18, ' '));
+   END LOOP;
+   CLOSE c_dept;
+END;
+
+
+/*
+
+OUTPUT
+
+Department ID    No. of Employees  
+-------------   --------------- 
+50              45                
+40              1                 
+110             2                 
+90              2                 
+30              6                 
+70              1                 
+10              1                 
+20              2                 
+60              5                 
+80              34                
+100             6                 
+
+
+PL/SQL procedure successfully completed.
+
+*/
