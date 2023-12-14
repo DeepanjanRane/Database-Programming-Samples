@@ -1,0 +1,169 @@
+--Q3
+
+DECLARE
+    n number := 100;
+    Exceed_Limit EXCEPTION;
+BEGIN
+    LOOP
+        dbms_output.put_line(n);
+        n := n + 5;
+        IF n > 120 THEN
+        RAISE Exceed_Limit;
+        END IF;
+    END LOOP;
+EXCEPTION
+    WHEN Exceed_Limit THEN
+    dbms_output.put_line('Error - Limit Exceeded');
+END;
+
+/*
+OUTPUT
+
+100
+105
+110
+115
+120
+Error - Limit Exceeded
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q4
+
+DECLARE
+    Salary_too_low EXCEPTION;
+   CURSOR c_emp  IS	
+      SELECT  employee_id, job_id, salary  
+      FROM    Employees;
+   v_empno		Employees.employee_id%TYPE;
+   v_jobid		Employees.job_id%TYPE;
+   v_sal		Employees.salary%TYPE;
+   v_min_salary NUMBER:= 2500;
+
+BEGIN
+   OPEN 	c_emp;
+   DBMS_OUTPUT.PUT_LINE('Employee ID   Emp Name      Salary  ');
+   DBMS_OUTPUT.PUT_LINE('-----------   ------------ ---------');
+   
+   LOOP 
+        FETCH   c_emp INTO v_empno, v_jobid, v_sal;
+        EXIT WHEN c_emp%NOTFOUND;
+        IF  v_sal < v_min_salary THEN
+        RAISE Salary_too_low; 		-- raise exception
+        ELSE
+       
+        DBMS_OUTPUT.PUT_LINE(RPAD (v_empno, 15) ||RPAD(v_jobid, 12)||TO_CHAR (v_sal, '$99,999'));
+        END IF;
+
+        
+   
+   END LOOP;
+   EXCEPTION
+WHEN Salary_too_low THEN 	-- start handling exception
+
+DBMS_OUTPUT.PUT_LINE('');
+DBMS_OUTPUT.PUT_LINE('Salary Too Low for below Emp ID');
+DBMS_OUTPUT.PUT_LINE('Employee ID   Emp Name      Salary  ');
+   DBMS_OUTPUT.PUT_LINE('-----------   ------------ ---------');
+DBMS_OUTPUT.PUT_LINE(RPAD (v_empno, 15) ||RPAD(v_jobid, 12)|| TO_CHAR (v_sal, '$99,999'));
+
+
+WHEN OTHERS THEN
+DBMS_OUTPUT.PUT_LINE ( 'Print out from exception of OTHERS.');
+
+Rollback;
+
+   CLOSE  c_emp;
+   
+END;
+
+/*
+OUTPUT
+
+Employee ID   Emp Name      Salary  
+-----------   ------------ ---------
+100            AD_PRES      $24,000
+101            AD_VP        $17,000
+102            AD_VP        $17,000
+103            IT_PROG       $9,000
+104            IT_PROG       $6,000
+105            IT_PROG       $4,800
+106            IT_PROG       $4,800
+107            IT_PROG       $4,200
+108            FI_MGR       $12,000
+109            FI_ACCOUNT    $9,000
+110            FI_ACCOUNT    $8,200
+111            FI_ACCOUNT    $7,700
+112            FI_ACCOUNT    $7,800
+113            FI_ACCOUNT    $6,900
+114            PU_MAN       $11,000
+115            PU_CLERK      $3,100
+116            PU_CLERK      $2,900
+117            PU_CLERK      $2,800
+118            PU_CLERK      $2,600
+119            PU_CLERK      $2,500
+120            ST_MAN        $8,000
+121            ST_MAN        $8,200
+122            ST_MAN        $7,900
+123            ST_MAN        $6,500
+124            ST_MAN        $5,800
+125            ST_CLERK      $3,200
+126            ST_CLERK      $2,700
+
+Salary Too Low for below Emp ID
+Employee ID   Emp Name      Salary  
+-----------   ------------ ---------
+127            ST_CLERK      $2,400
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q5
+
+DROP TABLE log_error;
+CREATE TABLE log_error (
+  Occur_date  DATE DEFAULT SYSDATE,
+  Username    VARCHAR2 (15) DEFAULT USER,
+  Err_code    NUMBER,
+  Err_msg     VARCHAR2 (255));
+
+Declare
+dept_id 	employees.department_id%TYPE:= 60;
+v_code 	NUMBER;
+v_errm 	VARCHAR2(64);
+
+BEGIN
+    delete from employees
+    where department_id = dept_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+v_code := SQLCODE;
+v_errm := SUBSTR(SQLERRM, 1, 64); 
+
+DBMS_OUTPUT.PUT_LINE
+('Error code CHANGE' || v_code || ': ' || v_errm);
+
+INSERT INTO log_error (Occur_date,Err_code, Err_msg)
+VALUES (SYSDATE,v_code, v_errm);
+         
+         --Rollback;
+END;
+
+/*
+OUTPUT
+
+Error code CHANGE-2292: ORA-02292: integrity constraint (DRANE.DEPT_MGR_FK) violated - c
+
+
+PL/SQL procedure successfully completed.
+
+OCCUR_DA USERNAME          ERR_CODE ERR_MSG                                                                                                                                                                                                                                                        
+-------- --------------- ---------- ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+30-01-23 DRANE                -2292 ORA-02292: integrity constraint (DRANE.DEPT_MGR_FK) violated - c     
+
+*/
