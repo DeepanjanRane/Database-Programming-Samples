@@ -1,0 +1,248 @@
+
+--Q1
+
+DECLARE
+dept_id 	departments.department_id%TYPE:= 280;
+dept_name 	departments.department_name%TYPE:= 'TEST';
+dept_manager_ID 	departments.manager_ID%TYPE:= 100;
+dept_location_ID    departments.location_ID%TYPE:= 1800;
+
+BEGIN
+INSERT INTO departments (DEPARTMENT_ID,DEPARTMENT_NAME,MANAGER_ID,LOCATION_ID)
+VALUES (dept_id,dept_name,dept_manager_ID,dept_location_ID);
+DBMS_OUTPUT.PUT_LINE ('The new record in the Department table has ID =' 
+|| dept_id ||  ', name as ' || dept_name || ',  Manager ID  '
+|| dept_manager_ID || ', and Location ID ' || dept_location_ID ||'.');
+END;
+
+/*OUTPUT
+
+The new record in the Department table has ID =280, name as TEST,  Manager ID  100, and Location ID 1800.
+
+
+PL/SQL procedure successfully completed.
+*/
+
+--Q2
+
+DECLARE
+    dept_id 	departments.department_id%TYPE:= 280;
+    dept_name 	departments.department_name%TYPE:= 'TEST';
+BEGIN
+    delete from departments
+    where DEPARTMENT_ID = dept_id
+
+    RETURNING department_name
+    INTO dept_name;		
+      
+    DBMS_OUTPUT.PUT_LINE ('The record deleted for 
+    department name ' || dept_name ||'.');
+END;
+
+/*
+OUTPUT
+
+The record deleted for department name TEST.
+
+PL/SQL procedure successfully completed.
+*/
+
+--Q3
+
+DECLARE
+    dept_id 	departments.department_id%TYPE:= 60;
+    dept_manager_id 	departments.manager_id%TYPE:= 103;
+    dept_name 	departments.department_name%TYPE;
+BEGIN
+    COMMIT;
+    
+    SELECT department_name INTO dept_name from departments 
+    where department_id = dept_id;
+    Update departments set manager_id = dept_manager_id where department_id = dept_id
+    
+    RETURNING department_name
+    INTO dept_name;		
+    
+    DBMS_OUTPUT.PUT_LINE ('Department updated is '||dept_name||' ');
+    DBMS_OUTPUT.PUT_LINE ('Values updated are Manager ID '||dept_manager_id||
+    ' for Department ID '||dept_id);
+    ROLLBACK WORK;
+    
+END;
+
+/*
+OUTPUT
+
+Department updated is IT 
+Values updated are Manager ID 103 for Department ID 60
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q4
+
+DECLARE
+   dept_size varchar2(20);
+BEGIN
+
+    SELECT COUNT(*)
+    INTO dept_size
+    FROM employees 
+    WHERE department_ID = 80;
+    
+    
+  IF  (dept_size >=30) THEN DBMS_OUTPUT.PUT_LINE('Total number of employees in 
+Department ID 80 is ' ||dept_size|| ' which is LARGE');  
+  ELSIF (dept_size >=8) and (dept_size <=29) THEN DBMS_OUTPUT.PUT_LINE('Total number of employees in 
+Department ID 80 is ' ||dept_size|| ' which is MEDIUM');
+  ELSIF (dept_size <=7) THEN DBMS_OUTPUT.PUT_LINE('Total number of employees in 
+Department ID 80 is ' ||dept_size|| ' which is SMALL'); 
+  ELSE
+  DBMS_OUTPUT.PUT_LINE('Employees count not detected');
+  END IF;
+END;
+
+
+/*
+OUTPUT
+
+Total number of employees in 
+Department ID 80 is 34 which is LARGE
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q5
+
+DECLARE
+    basic_amount Employees.SALARY%TYPE := 1500;
+    present_salary Employees.Salary%TYPE := 0;
+    working_years NUMBER(4) := 0;
+    work_year_bonus Employees.SALARY%TYPE := 0;
+    salary_range Employees.SALARY%TYPE := 0;
+    
+    
+BEGIN
+
+    SELECT ROUND((SYSDATE-HIRE_DATE)/365,1), Salary
+    INTO working_years, present_salary
+    FROM Employees
+    WHERE Employee_ID=205;
+    
+    IF (working_years < 25) THEN work_year_bonus := 0; 
+    ELSIF (working_years >= 25) and (working_years < 27) THEN work_year_bonus := 800; 
+    ELSIF (working_years >= 27) THEN work_year_bonus := 900; 
+    ELSE DBMS_OUTPUT.PUT_LINE('No data found');
+    END IF; 
+    
+    IF (present_salary > 10000) THEN salary_range := 1200; 
+    ELSIF (present_salary >= 5000) and (present_salary <= 10000) THEN salary_range := 1000; 
+    ELSIF (present_salary < 5000) THEN salary_range := 800; 
+    ELSE DBMS_OUTPUT.PUT_LINE('No data found');    
+    END IF; 
+    DBMS_OUTPUT.PUT_LINE('Bonus for Employee ID 205 is '||TO_CHAR(basic_amount+work_year_bonus+salary_range));
+
+END;
+
+/*
+OUTPUT
+
+Bonus for Employee ID 205 is 3600
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q6
+
+BEGIN
+    FOR i IN 10..15 LOOP
+    dbms_output.put_line(i || ' inches is equal to ' || (i * 2.54) || ' centimeters.');
+    END LOOP;
+END;
+
+/*
+OUTPUT
+10 inches is equal to 25.4 centimeters.
+11 inches is equal to 27.94 centimeters.
+12 inches is equal to 30.48 centimeters.
+13 inches is equal to 33.02 centimeters.
+14 inches is equal to 35.56 centimeters.
+15 inches is equal to 38.1 centimeters.
+
+PL/SQL procedure successfully completed.
+*/
+
+--Q7
+
+
+BEGIN 
+  for i IN 1..9 LOOP
+     DBMS_OUTPUT.PUT('|');
+  for j IN 1..9 LOOP   
+         DBMS_OUTPUT.PUT (' ' || i || j || ' '); 
+           END LOOP;
+      DBMS_OUTPUT.PUT_LINE('|');
+ 
+   END LOOP;
+END;
+
+/*
+OUTPUT
+
+| 11  12  13  14  15  16  17  18  19 |
+| 21  22  23  24  25  26  27  28  29 |
+| 31  32  33  34  35  36  37  38  39 |
+| 41  42  43  44  45  46  47  48  49 |
+| 51  52  53  54  55  56  57  58  59 |
+| 61  62  63  64  65  66  67  68  69 |
+| 71  72  73  74  75  76  77  78  79 |
+| 81  82  83  84  85  86  87  88  89 |
+| 91  92  93  94  95  96  97  98  99 |
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+--Q8
+--a
+
+DECLARE
+   dept_no  emp.deptno%TYPE := 20;
+BEGIN
+    commit;
+    update emp set sal=sal+sal*.10 where deptno=dept_no and sal <= 1800;
+    Rollback;
+END;
+
+
+--b
+
+DECLARE
+   dept_no  emp.deptno%TYPE := 20;
+BEGIN
+    commit;
+    delete from emp where deptno=dept_no;
+    Rollback;
+END;
+
+/*
+a OUTPUT
+
+     EMPNO ENAME      JOB              MGR HIREDATE        SAL       COMM     DEPTNO
+---------- ---------- --------- ---------- -------- ---------- ---------- ----------
+      7369 SMITH      CLERK           7902 17-12-80        880                    20
+      7876 ADAMS      CLERK           7788 12-01-83       1210                    20
+
+b OUTPUT
+
+no rows selected
+*/
+
+--Q9
+
+Could not solve
