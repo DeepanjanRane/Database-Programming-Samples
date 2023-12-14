@@ -1,0 +1,329 @@
+
+--Q1
+
+CREATE OR REPLACE PROCEDURE EMP_Info (
+  empno IN NUMBER,
+  emp_lname OUT employees.last_name%TYPE,
+  emp_sal OUT employees.salary%TYPE,
+  dept_name OUT departments.department_name%TYPE
+)
+IS
+BEGIN
+  SELECT last_name, salary
+  INTO emp_lname, emp_sal
+  FROM employees
+  WHERE employee_id = empno;
+  
+  SELECT department_name
+  INTO dept_name
+  FROM departments
+  WHERE department_id = (SELECT department_id FROM employees WHERE employee_id = empno);
+  
+END EMP_Info;
+/
+
+DECLARE
+  v_empno employees.employee_id%TYPE;
+  v_lname employees.last_name%TYPE;
+  v_sal employees.salary%TYPE;
+  v_dept departments.department_name%TYPE;
+BEGIN
+DBMS_OUTPUT.PUT_LINE('Employee ID   ' ||'Last Name ' ||'    Salary ' ||'    Department ');
+DBMS_OUTPUT.PUT_LINE('-----------   ' ||'--------- ' ||'    ------ ' ||'    ---------- ');
+  FOR emp IN (SELECT employee_id, last_name, salary
+              FROM employees
+              WHERE manager_id = 103)
+              
+  LOOP
+    v_empno := emp.employee_id;
+    EMP_Info(v_empno, v_lname, v_sal, v_dept);
+    DBMS_OUTPUT.PUT_LINE(RPAD(v_empno, 14, ' ')||RPAD(v_lname, 14, ' ')||RPAD(v_sal, 14, ' ')||RPAD(v_dept, 14, ' '));
+  END LOOP;
+END;
+/
+
+/*
+
+OUTPUT
+
+Procedure EMP_INFO compiled
+
+Employee ID   Last Name     Salary     Department 
+-----------   ---------     ------     ---------- 
+104           Ernst         6000          IT            
+105           Austin        4800          IT            
+106           Pataballa     4800          IT            
+107           Lorentz       4200          IT            
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+
+--Q2
+
+DECLARE
+  emp_manager_id employees.manager_id%TYPE;
+  dept_name departments.department_name%TYPE;
+  
+  FUNCTION Dept_Info(dept_id IN NUMBER) RETURN VARCHAR2 IS
+    first_name employees.first_name%TYPE;
+    last_name employees.last_name%TYPE;
+  BEGIN
+    SELECT e.first_name, e.last_name
+    INTO first_name, last_name
+    FROM employees e
+    WHERE e.employee_id = (SELECT d.manager_id 
+    FROM departments d WHERE d.department_id = dept_id);
+    
+    RETURN first_name || ' ' || last_name;
+  END;
+  
+  FUNCTION Dept_Info(dept_name IN VARCHAR2) RETURN VARCHAR2 IS
+    first_name employees.first_name%TYPE;
+    last_name employees.last_name%TYPE;
+    dept_id departments.department_id%TYPE;
+  BEGIN
+    SELECT d.department_id
+    INTO dept_id
+    FROM departments d
+    WHERE d.department_name = dept_name;
+    
+    SELECT e.first_name, e.last_name
+    INTO first_name, last_name
+    FROM employees e
+    WHERE e.employee_id = (SELECT d.manager_id 
+    FROM departments d WHERE d.department_id = dept_id);
+    
+    RETURN first_name || ' ' || last_name;
+  END;
+  
+BEGIN
+  emp_manager_id := 60;
+  dept_name := Dept_Info(emp_manager_id);
+  DBMS_OUTPUT.PUT_LINE('Department head for department ID 60 is '|| dept_name);
+  
+  dept_name := 'IT';
+  dept_name := Dept_Info(dept_name);
+  DBMS_OUTPUT.PUT_LINE('Department head for department name IT is ' || dept_name);
+END;
+
+/*
+
+OUTPUT
+
+Department head for department ID 60 is Alexander Hunold
+Department head for department name IT is Alexander Hunold
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+
+--Q3
+
+drop PACKAGE BODY Pkg_Dept_Emp;
+drop package Pkg_Dept_Emp;
+
+CREATE OR REPLACE PACKAGE Pkg_Dept_Emp AS
+    TYPE Dept_emp IS RECORD (
+        dept_id          departments.department_id%TYPE,
+        emp_num          NUMBER(6),
+        head_firstname   employees.first_name%TYPE,
+        head_lastname    employees.last_name%TYPE
+    );
+    FUNCTION Dept_info(id_in IN departments.department_id%TYPE) RETURN Dept_emp;
+END Pkg_Dept_Emp;
+/
+
+CREATE OR REPLACE PACKAGE BODY Pkg_Dept_Emp AS
+    FUNCTION Dept_info(id_in IN departments.department_id%TYPE) RETURN Dept_emp IS
+        dept_emp_rec Dept_emp;
+    BEGIN
+        SELECT d.department_id, COUNT(e.employee_id), m.first_name, m.last_name
+        INTO dept_emp_rec.dept_id, dept_emp_rec.emp_num, dept_emp_rec.head_firstname, dept_emp_rec.head_lastname
+        FROM departments d
+        JOIN employees e ON d.department_id = e.department_id
+        JOIN employees m ON d.manager_id = m.employee_id
+        WHERE d.department_id = id_in
+        GROUP BY d.department_id, m.first_name, m.last_name;
+        RETURN dept_emp_rec;
+    END Dept_info;
+END Pkg_Dept_Emp;
+/
+
+DECLARE
+    CURSOR dept_cursor IS
+        SELECT DISTINCT department_id 
+        FROM employees
+        WHERE manager_id IS NOT NULL and department_id IS NOT NULL;
+    dept_id employees.department_id%TYPE;
+    dept_emp_rec Pkg_Dept_Emp.Dept_emp;
+BEGIN
+
+DBMS_OUTPUT.PUT_LINE('Department ID   ' ||'No of Employees' ||'    Manager First Name ' ||'    Manager Last Name ');
+DBMS_OUTPUT.PUT_LINE('-------------   ' ||'---------------' ||'    ------------------ ' ||'    ----------------- ');
+    OPEN dept_cursor;
+    LOOP
+        FETCH dept_cursor INTO dept_id;
+        EXIT WHEN dept_cursor%NOTFOUND;
+        dept_emp_rec := Pkg_Dept_Emp.Dept_info(dept_id);
+        DBMS_OUTPUT.PUT_LINE(RPAD(dept_emp_rec.dept_id, 18, ' ')||
+        RPAD(dept_emp_rec.emp_num, 22, ' ')||
+        RPAD(dept_emp_rec.head_firstname, 22, ' ')||
+        RPAD(dept_emp_rec.head_lastname, 20, ' '));
+    END LOOP;
+    CLOSE dept_cursor;
+END;
+/
+
+
+/*
+
+OUTPUT
+
+
+Package body PKG_DEPT_EMP dropped.
+
+
+Package PKG_DEPT_EMP dropped.
+
+
+Package PKG_DEPT_EMP compiled
+
+
+Package Body PKG_DEPT_EMP compiled
+
+Department ID   No of Employees    Manager First Name     Manager Last Name 
+-------------   ---------------    ------------------     ----------------- 
+50                45                    Adam                  Fripp               
+40                1                     Susan                 Mavris              
+110               2                     Shelley               Higgins             
+90                3                     Steven                King                
+30                6                     Den                   Raphaely            
+70                1                     Hermann               Baer                
+10                1                     Jennifer              Whalen              
+20                2                     Michael               Hartstein           
+60                5                     Alexander             Hunold              
+80                34                    John                  Russell             
+100               6                     Nancy                 Greenberg           
+
+
+PL/SQL procedure successfully completed.
+
+*/
+
+
+--Q4
+
+drop TABLE Dept_log
+
+CREATE TABLE Dept_log (
+   old_deptno NUMBER,
+   old_dname VARCHAR2(14),
+   old_loc VARCHAR2(13),
+   new_deptno NUMBER,
+   new_dname VARCHAR2(14),
+   new_loc VARCHAR2(13),
+   updated_date DATE,
+   updated_by VARCHAR2(20),
+   action VARCHAR2(10)
+);
+
+CREATE OR REPLACE TRIGGER Dept_monitor
+AFTER INSERT OR DELETE OR UPDATE OF dname ON Dept
+FOR EACH ROW
+WHEN (NEW.dname IS NOT NULL)
+DECLARE
+  action_name varchar2(10);
+BEGIN
+ IF INSERTING THEN
+        action_name := 'INSERT';
+    ELSIF DELETING THEN
+        action_name := 'DELETE';    
+    ELSIF UPDATING THEN
+        action_name := 'UPDATE';
+    
+    END IF;
+
+  
+  INSERT INTO Dept_log (old_deptno, old_dname, old_loc, new_deptno, new_dname, new_loc, updated_date, updated_by, action)
+  VALUES (:OLD.deptno, :OLD.dname, :OLD.loc, :NEW.deptno, :NEW.dname, :NEW.loc, SYSDATE, USER, action_name);
+END;
+
+INSERT INTO dept VALUES (90, 'Test', 'Miami');
+
+UPDATE dept set dname = 'Delete me'   WHERE deptno = 90;
+
+DELETE dept where deptno = 90;
+
+SELECT * from Dept_log ;
+
+rollback;
+
+/*
+
+OUTPUT
+
+Table DEPT_LOG dropped.
+
+
+Table DEPT_LOG created.
+
+
+Trigger DEPT_MONITOR compiled
+
+
+1 row inserted.
+
+
+1 row updated.
+
+
+1 row deleted.
+
+
+OLD_DEPTNO OLD_DNAME      OLD_LOC       NEW_DEPTNO NEW_DNAME      NEW_LOC       UPDATED_ UPDATED_BY           ACTION    
+---------- -------------- ------------- ---------- -------------- ------------- -------- -------------------- ----------
+                                                90 Test           Miami         13-03-23 DRANE                INSERT    
+        90 Test           Miami                 90 Delete me      Miami         13-03-23 DRANE                UPDATE    
+
+
+Rollback complete.
+
+-- {I tried to get the delete action in the table but couldnt do it}
+
+*/
+
+
+--Q5
+
+Declare
+    dept_id NUMBER := 80; 
+    emp_count NUMBER;
+    query_str varchar2 (2000);
+
+BEGIN
+   query_str := 
+  'SELECT COUNT(*) FROM employees WHERE department_id = :dept_id';
+   EXECUTE IMMEDIATE query_str
+        INTO emp_count		-- play role of out-bind variables
+        USING  dept_id;	-- in-bind variables
+   DBMS_OUTPUT.PUT_LINE('Number of employees working in department ' ||
+  dept_id || ' is ' || emp_count);
+END;
+/
+
+
+/*
+
+OUTPUT
+
+Number of employees working in department 80 is 34
+
+
+PL/SQL procedure successfully completed.
+
+*/
